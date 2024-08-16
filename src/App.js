@@ -10,14 +10,10 @@ function Square({ value, onSquareClick }) {
   ); //function Square({ value }) menunjukkan komponen Square dapat dioper sebuah prop yang disebut value.
 }
 
-export default function Board() {
-  const [xIsNext, setXIsNext] = useState(true); //xIsNext (sebuah boolean) akan dibalik untuk menentukan pemain mana yang akan bergerak selanjutnya dan state permainan akan disimpan
-  const [squares, setSquares] = useState(Array(9).fill(null)); //mendeklarasikan variabel state bernama squares yang secara default merupakan sebuah senarai berisi 9 null yang sesuai dengan 9 kotak
-
+function Board({ xIsNext, squares, onPlay }) {
   function handleClick(i) {
-    //mendefinisikan fungsi handleClick di dalam komponen Board untuk memperbarui senarai squares yang menyimpan state papan Anda
-    if (squares[i] || calculateWinner(squares)) {
-      return; //membuat agar kotak yang diklik jika sudah ada valuenya tidak berubah atau tetap
+    if (calculateWinner(squares) || squares[i]) {
+      return;
     }
     const nextSquares = squares.slice();
     if (xIsNext) {
@@ -25,8 +21,7 @@ export default function Board() {
     } else {
       nextSquares[i] = "O";
     }
-    setSquares(nextSquares);
-    setXIsNext(!xIsNext);
+    onPlay(nextSquares);
   }
 
   const winner = calculateWinner(squares); //Anda akan menambahkan bagian status ke komponen Board
@@ -57,6 +52,53 @@ export default function Board() {
         <Square value={squares[8]} onSquareClick={() => handleClick(8)} />
       </div>
     </>
+  );
+}
+
+//Perhatikan bahwa Anda menghapus kata kunci export default sebelum deklarasi function Board()
+//{ dan menambahkannya sebelum deklarasi function Game() {
+// Hal ini memberi tahu file index.js Anda untuk menggunakan komponen Game sebagai komponen tingkat atas, bukan komponen Board.
+export default function Game() {
+  const [history, setHistory] = useState([Array(9).fill(null)]); //Perhatikan bagaimana [Array(9).fill(null)] adalah sebuah senarai dengan satu item, yang merupakan senarai dari 9 buah null.
+  const [currentMove, setCurrentMove] = useState(0); //untuk melacak langkah mana yang sedang dilihat oleh pengguna. Untuk melakukan ini, tentukan variabel state baru yang disebut currentMove, dengan nilai awal 0:
+  const xIsNext = currentMove % 2 === 0;
+  const currentSquares = history[currentMove]; //Untuk me-render kotak untuk pergerakan saat ini, Anda perlu membaca senarai kotak terakhir dari history
+
+  function handlePlay(nextSquares) {
+    const nextHistory = [...history.slice(0, currentMove + 1), nextSquares];
+    setHistory(nextHistory);
+    setCurrentMove(nextHistory.length - 1); //untuk menunjuk ke entri riwayat terbaru.
+  }
+
+  function jumpTo(nextMove) {
+    setCurrentMove(nextMove); //Anda juga akan mengatur xIsNext menjadi true jika angka yang Anda ubah menjadi currentMove adalah genap
+  }
+
+  const moves = history.map((squares, move) => {
+    //menggunakan map untuk mengubah history gerakan Anda menjadi elemen React yang merepresentasikan tombol di layar
+    let description;
+    if (move > 0) {
+      description = "Pergi ke langkah #" + move;
+    } else {
+      description = "Pergi ke awal permainan";
+    }
+    return (
+      //menambahkan key sebagai <li key={move}>, dan jika Anda memuat ulang game yang telah di-render, error “key” pada React akan hilang:
+      <li key={move}>
+        <button onClick={() => jumpTo(move)}>{description}</button>
+      </li>
+    );
+  });
+
+  return (
+    <div className="game">
+      <div className="game-board">
+        <Board xIsNext={xIsNext} squares={currentSquares} onPlay={handlePlay} />
+      </div>
+      <div className="game-info">
+        <ol>{moves}</ol>
+      </div>
+    </div>
   );
 }
 
